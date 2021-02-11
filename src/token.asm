@@ -7,8 +7,8 @@ calldatacopy					; []
 ; Extract only the function selector
 push1 0						; [selector_ptr]
 mload           				; [dirty_selector]
-push4 ffffffff      				; [dirty_selector, ffffffff]
-and						; [selector]
+push1 e0					; [dirty_selector, 28*8]
+shr		      				; [selector]
 
 ; Jump to the coresponding function.
 dup1						; [selector, selector]
@@ -93,4 +93,5 @@ return						; []
 
 jumpdest .decimals
 jumpdest .total_supply
+jumpdest .transfer_from
 stop

@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "compile": "node scripts/compile.js"
+  },
+  "dependencies": {
+    "@truffle/artifactor": "^4.0.94",
+    "truffle-assertions": "^0.9.2"
+  }
+}
