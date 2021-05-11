@@ -1,0 +1,121 @@
+start:
+	; Read the calldata into memory.
+	calldatasize		; [calldatasize]
+	push1 0			; [0, calldatasize]
+	dup1			; [0, 0, calldatasize]	
+	calldatacopy		; []	
+
+	; Extract only the function selector
+	push1 0			; [0]
+	mload			; [dirty_selector]			
+	push1 224		; [224, dirty_selector]
+	shr		      	; [selector]	
+
+	; Jump to the coresponding function.
+	dup1			; [selector, selector]		
+	push4 selector("decimals()") ; [candidate, selector, selector]
+	eq			; [success, selector]	
+	push4 decimals		; [decimals, success, selector]
+	jumpi			; [selector]
+
+	dup1			; [selector, selector]		
+	push4 selector("totalSupply()")	; [candidate, selector, selector]
+	eq			; [success, selector]
+	push4 total_supply	; [total_supply, success, selector]
+	jumpi			; [selector]	
+
+	dup1			; [selector, selector]
+	push4 selector("balanceOf(address)") ; [candidate, selector, selector]
+	eq			; [success, selector]
+	push4 balance_of	; [balance_of, success, selector]
+	jumpi			; [selector]
+
+	dup1			; [selector, selector]		
+	push4 selector("transfer(address,uint256)") ; [candidate, selector, selector]
+	eq			; [selector, success]	
+	push4 transfer		; [transfer, success, selector]
+	jumpi			; [selector] 
+
+	dup1			; [selector, selector]
+	push4 selector("transferFrom(address,address,uint256)") ; [candidate, selector, selector]
+	eq			; [success, selector]
+	push4 transfer_from	; [transfer_from, success, selector]
+	jumpi			; [selector]	
+
+; Catchall for reverts.
+failure:
+	jumpdest
+	push1 0						
+	push1 0						
+	revert
+
+; balance_of
+;
+; calldata structure
+; +--------------------+--------------------+
+; | selector (4 bytes) | address (20 bytes) |
+; +--------------------+--------------------+
+
+balance_of:
+	jumpdest		; [selector]
+	pop			; []
+
+	; load the 0 word of calldata
+	push1 0			; [0]
+	mload			; [calldata]
+
+	; sanitize address value and shift into bottom 20 bytes
+	push24 0x00000000ffffffffffffffffffffffffffffffffffffffff ; [0x00..ff, calldata]
+	and			; [unshifted_addr]
+	push1 8			; [8, unshifted_addr]
+	shr			; [addr]
+
+	; load balance
+	sload			; [balance]
+	push1 0			; [0, balance]	
+	swap1			; [balance, 0]		
+	dup2			; [0, balance, 0]	
+	mstore			; [0]
+	push1 20		; [20, 0]			
+	return			; []
+
+; Transfer implementation
+transfer:
+	jumpdest
+	pop						
+	caller						
+	sload						
+	push1 24					
+	mload						
+	dup2						
+	dup2						
+	gt						
+	push4 failure					
+	jumpi						
+	dup1						
+	swap2						
+	swap1						
+	sub						
+	caller						
+	sstore						
+	push1 4						
+	mload						
+	dup1						
+	sload						
+	swap1						
+	swap2						
+	add						
+	swap1						
+	sstore						
+	push1 0						
+	dup1						
+	return						
+
+decimals:
+	jumpdest 
+total_supply:
+	jumpdest
+transfer_from:
+	jumpdest
+
+stop

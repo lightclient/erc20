@@ -1,221 +1,66 @@
-const Artifactor = require("@truffle/artifactor");
-const { exec } = require("child_process");
+const Artifactor = require('@truffle/artifactor');
+const ethers = require('ethers');
+const { execSync } = require('child_process');
 const fs = require('fs');
+const path = require('path')
 
 const target_dir = './build';
-const abi = [
-    {
-        "constant": false,
-        "inputs": [
-            {
-                "name": "_spender",
-                "type": "address"
-            },
-            {
-                "name": "_value",
-                "type": "uint256"
-            }
-        ],
-        "name": "approve",
-        "outputs": [
-            {
-                "name": "",
-                "type": "bool"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [],
-        "name": "totalSupply",
-        "outputs": [
-            {
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": false,
-        "inputs": [
-            {
-                "name": "_from",
-                "type": "address"
-            },
-            {
-                "name": "_to",
-                "type": "address"
-            },
-            {
-                "name": "_value",
-                "type": "uint256"
-            }
-        ],
-        "name": "transferFrom",
-        "outputs": [
-            {
-                "name": "",
-                "type": "bool"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [],
-        "name": "decimals",
-        "outputs": [
-            {
-                "name": "",
-                "type": "uint8"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [
-            {
-                "name": "_owner",
-                "type": "address"
-            }
-        ],
-        "name": "balanceOf",
-        "outputs": [
-            {
-                "name": "balance",
-                "type": "uint256"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": false,
-        "inputs": [
-            {
-                "name": "_to",
-                "type": "address"
-            },
-            {
-                "name": "_value",
-                "type": "uint256"
-            }
-        ],
-        "name": "transfer",
-        "outputs": [
-            {
-                "name": "",
-                "type": "bool"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [
-            {
-                "name": "_owner",
-                "type": "address"
-            },
-            {
-                "name": "_spender",
-                "type": "address"
-            }
-        ],
-        "name": "allowance",
-        "outputs": [
-            {
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "payable": true,
-        "stateMutability": "payable",
-        "type": "fallback"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "name": "owner",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "name": "spender",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "name": "value",
-                "type": "uint256"
-            }
-        ],
-        "name": "Approval",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "name": "from",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "name": "to",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "name": "value",
-                "type": "uint256"
-            }
-        ],
-        "name": "Transfer",
-        "type": "event"
+const contracts_dir = './src';
+
+
+function main() {
+    if (!fs.existsSync(contracts_dir)) {
+        console.error(`contracts directory (${contracts_dir}) does not exsit`)
+        return
     }
-];
 
-exec("eas src/token.asm", (error, stdout, stderr) => {
-  if (error) {
-      console.log(`error: ${error.message}`);
-      return;
-  }
-  if (stderr) {
-      console.log(`stderr: ${stderr}`);
-      return;
-  }
-  const contractData = {
-    contractName: "Token",
-    abi: abi,
-    bytecode: stdout,
-  };
+    let bin = compile_asm("ctor.etk");
+    let abi = JSON.parse(fs.readFileSync(`${contracts_dir}/token.abi`, 'utf8'));
+    abi = abi.map((el) => {
+        return JSON.parse(ethers.utils.Fragment.from(el).format("json"))
+    });
 
-  const artifactor = new Artifactor(target_dir);
-  if (!fs.existsSync(target_dir)){
-    fs.mkdirSync(target_dir);
-  }
-  artifactor.save(contractData);
-});
+    save_artifact("Token", bin, abi);
+    
+    /*
+    let files = fs.readdirSync(contracts_dir);
+    files.forEach((file) => {
+        let ext = path.extname(file);
+        if (ext == '.etk') {
+            let bin = compile_asm(file);
+            let name = path.basename(file, '.etk');
+            let abi_path = path.format({dir: contracts_dir, name: `${name}.abi`});
+            let abi = JSON.parse(fs.readFileSync(abi_path, 'utf8'));
+            abi = abi.map((el) => {
+                return JSON.parse(ethers.utils.Fragment.from(el).format("json"))
+            });
+
+            save_artifact(name, bin, abi);
+        }
+    });
+    */
+}
+
+function compile_asm(file) {
+    return execSync(`eas ${contracts_dir}/${file}`).toString().replace(/(\r\n|\n|\r)/gm, "");
+}
+
+function save_artifact(name, bin, abi) {
+    console.log(name)
+    console.log(bin)
+    console.log(abi)
+
+    const contractData = {
+      contractName: name[0].toUpperCase() + name.slice(1),
+      abi: abi,
+      bytecode: bin,
+    };
+
+    if (!fs.existsSync(target_dir)){
+      fs.mkdirSync(target_dir);
+    }
+    const artifactor = new Artifactor(target_dir);
+    artifactor.save(contractData);
+}
+
+main();
