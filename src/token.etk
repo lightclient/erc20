@@ -2,27 +2,27 @@ start:
 	; Read the calldata into memory.
 	calldatasize		; [calldatasize]
 	push1 0			; [0, calldatasize]
-	dup1			; [0, 0, calldatasize]	
-	calldatacopy		; []	
+	dup1			; [0, 0, calldatasize]
+	calldatacopy		; []
 
 	; Extract only the function selector
 	push1 0			; [0]
-	mload			; [dirty_selector]			
+	mload			; [dirty_selector]
 	push1 224		; [224, dirty_selector]
-	shr		      	; [selector]	
+	shr		      	; [selector]
 
 	; Jump to the coresponding function.
-	dup1			; [selector, selector]		
+	dup1			; [selector, selector]
 	push4 selector("decimals()") ; [candidate, selector, selector]
-	eq			; [success, selector]	
+	eq			; [success, selector]
 	push4 decimals		; [decimals, success, selector]
 	jumpi			; [selector]
 
-	dup1			; [selector, selector]		
+	dup1			; [selector, selector]
 	push4 selector("totalSupply()")	; [candidate, selector, selector]
 	eq			; [success, selector]
 	push4 total_supply	; [total_supply, success, selector]
-	jumpi			; [selector]	
+	jumpi			; [selector]
 
 	dup1			; [selector, selector]
 	push4 selector("balanceOf(address)") ; [candidate, selector, selector]
@@ -30,23 +30,23 @@ start:
 	push4 balance_of	; [balance_of, success, selector]
 	jumpi			; [selector]
 
-	dup1			; [selector, selector]		
+	dup1			; [selector, selector]
 	push4 selector("transfer(address,uint256)") ; [candidate, selector, selector]
-	eq			; [selector, success]	
+	eq			; [selector, success]
 	push4 transfer		; [transfer, success, selector]
-	jumpi			; [selector] 
+	jumpi			; [selector]
 
 	dup1			; [selector, selector]
 	push4 selector("transferFrom(address,address,uint256)") ; [candidate, selector, selector]
 	eq			; [success, selector]
 	push4 transfer_from	; [transfer_from, success, selector]
-	jumpi			; [selector]	
+	jumpi			; [selector]
 
 ; Catchall for reverts.
 failure:
 	jumpdest
-	push1 0						
-	push1 0						
+	push1 0
+	push1 0
 	revert
 
 ; balance_of
@@ -60,57 +60,68 @@ balance_of:
 	jumpdest		; [selector]
 	pop			; []
 
-	; load the 1st word of calldata
-	push1 8			; [0]
-	mload			; [addr]
+	; prepare return parameters
+	push1 32		; [ret_len]
+	push1 0			; [ret_offset, ret_len]
 
-	push1 32		; [128, unshifted_addr]
-	shr			; [addr]
+	; skip the selector, load the address
+	push1 4			; [4, ret_offset, ret_len]
+	mload			; [addr, ret_offset, ret_len]
 
 	; load balance
-	sload			; [balance]
-	push1 0			; [0, balance]	
-	swap1			; [balance, 0]		
-	dup2			; [0, balance, 0]	
-	mstore			; [0]
-	push1 32		; [32, 0]			
-	swap1			; [0, 32]
+	sload			; [balance, ret_offset, ret_len]
+
+	; prepare balance to return
+	dup2			; [0, balance, ret_offset, ret_len]
+	mstore			; [ret_offset, ret_len]
+
 	return			; []
 
-; Transfer implementation
+; transfer
+;
+; calldata structure
+; +--------------------+------------------+---------------+-------------------+
+; | selector (4 bytes) | zeros (12 bytes) | to (20 bytes) | amount (32 bytes) |
+; +--------------------+------------------+---------------+-------------------+
 transfer:
 	jumpdest
-	pop						
-	caller						
-	sload						
-	push1 24					
-	mload						
-	dup2						
-	dup2						
-	gt						
-	push4 failure					
-	jumpi						
-	dup1						
-	swap2						
-	swap1						
-	sub						
-	caller						
-	sstore						
-	push1 4						
-	mload						
-	dup1						
-	sload						
-	swap1						
-	swap2						
-	add						
-	swap1						
-	sstore						
-	push1 0						
-	dup1						
-	return						
+	pop
+
+	caller			; [from]
+	sload			; [from_balance]
+	push1 36		; [36, from_balance]
+	mload			; [amt, from_balance]
+	dup2			; [from_balance, amt, from_balance]
+	dup2			; [amt, from_balance, amt, from_balance]
+
+	eq			; [amt == from_balance, amt, from_balance]
+	push4 valid_transfer	; [continue, amt == from_balance, amt, from_balance]
+	jumpi			; [amt, from_balance]
+
+	dup2			; [from_balance, amt, from_balance]
+	dup2			; [amt, from_balance, amt, from_balance]
+	gt			; [amt > from_balance, amt, from_balance]
+	push4 failure		; [failure, from_balance, amt, from_balance]
+	jumpi			; [amt, from_balance]
+
+valid_transfer:
+	dup1			; [amt, amt, from_balance]
+	swap2			; [from_balance, amt, amt]
+	sub			; [from_balance - amt, amt]
+	caller			; [from, from_balance - amt, amt]
+	sstore			; [amt]
+	push1 4			; [4, amt]
+	mload			; [to, amt]
+	dup1			; [to, to, amt]
+	sload			; [to_balance, to, amt]
+	swap1			; [to, to_balance, amt]
+	swap2			; [amt, to_balance, to]
+	add			; [amt + to_balance, to]
+	swap1			; [to, amt + to_balance]
+	sstore			; []
 
 decimals:
-	jumpdest 
+	jumpdest
 total_supply:
 	jumpdest
 transfer_from:
