@@ -8,7 +8,9 @@ contract("Token", accounts => {
     token = await Token.deployed();
   });
 
-  it("todo", async () => {
+  it("balance_of", async () => {
+      const balance = await token.balanceOf.call(accounts[0])
+      assert.strictEqual(balance.toNumber(), 10000)
   });
 });
 

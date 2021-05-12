@@ -52,22 +52,19 @@ failure:
 ; balance_of
 ;
 ; calldata structure
-; +--------------------+--------------------+
-; | selector (4 bytes) | address (20 bytes) |
-; +--------------------+--------------------+
+; +--------------------+------------------+--------------------+
+; | selector (4 bytes) | zeros (12 bytes) | address (20 bytes) |
+; +--------------------+------------------+--------------------+
 
 balance_of:
 	jumpdest		; [selector]
 	pop			; []
 
-	; load the 0 word of calldata
-	push1 0			; [0]
-	mload			; [calldata]
+	; load the 1st word of calldata
+	push1 8			; [0]
+	mload			; [addr]
 
-	; sanitize address value and shift into bottom 20 bytes
-	push24 0x00000000ffffffffffffffffffffffffffffffffffffffff ; [0x00..ff, calldata]
-	and			; [unshifted_addr]
-	push1 8			; [8, unshifted_addr]
+	push1 32		; [128, unshifted_addr]
 	shr			; [addr]
 
 	; load balance
@@ -76,7 +73,8 @@ balance_of:
 	swap1			; [balance, 0]		
 	dup2			; [0, balance, 0]	
 	mstore			; [0]
-	push1 20		; [20, 0]			
+	push1 32		; [32, 0]			
+	swap1			; [0, 32]
 	return			; []
 
 ; Transfer implementation

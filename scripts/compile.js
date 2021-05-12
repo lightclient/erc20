@@ -17,7 +17,19 @@ function main() {
     let bin = compile_asm("ctor.etk");
     let abi = JSON.parse(fs.readFileSync(`${contracts_dir}/token.abi`, 'utf8'));
     abi = abi.map((el) => {
-        return JSON.parse(ethers.utils.Fragment.from(el).format("json"))
+        let fragment = JSON.parse(ethers.utils.Fragment.from(el).format("json"));
+
+        // ethers doesn't set "indexed" to false when it doesn't appear
+        // in the fragment - so set it manually
+        if (fragment.type == 'event') {
+            for (i = 0; i < fragment.inputs.length; i++) {
+                if (!('indexed' in fragment.inputs[i])) {
+                    fragment.inputs[i].indexed = false;
+                }
+            }
+        }
+
+        return fragment;
     });
 
     save_artifact("Token", bin, abi);
@@ -46,10 +58,6 @@ function compile_asm(file) {
 }
 
 function save_artifact(name, bin, abi) {
-    console.log(name)
-    console.log(bin)
-    console.log(abi)
-
     const contractData = {
       contractName: name[0].toUpperCase() + name.slice(1),
       abi: abi,

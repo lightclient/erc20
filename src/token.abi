@@ -1,3 +1,5 @@
 [
-  "function balanceOf(address owner) view returns (uint balance)"
+  "function balanceOf(address owner) view returns (uint balance)",
+  "function transfer(address to, uint amount)",
+  "event Transfer(address indexed from, address indexed to, uint amount)"
 ]
