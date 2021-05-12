@@ -9,6 +9,6 @@ rm -f trace-0-*
 cat debug/base.json |
 				jq ".alloc[\"$target\"].code = \"0x$bin\"" |
 				jq ".txs[0].input = \"$2\"" |
-				evm t8n --input.alloc=stdin --input.env=stdin --input.txs=stdin --output.result=stdout --output.alloc=stdout --trace
-traceview trace-0-*
+				~/dev/go-ethereum/cmd/evm/evm t8n --input.alloc=stdin --input.env=stdin --input.txs=stdin --output.result=stdout --output.alloc=stdout --trace &&
+				traceview trace-0-*
 rm -f trace-0-*

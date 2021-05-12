@@ -1,3 +1,14 @@
+;
+; erc20
+;
+; Minimal ERC-20 implementation in raw assembly.
+;
+; Storage Layout
+; --
+; balance(address)	    => 0x000000000000000000000000 || address
+; allowance(owner, spender) => keccak(owner || spender)
+
+
 start:
 	; Read the calldata into memory.
 	calldatasize		; [calldatasize]
@@ -12,6 +23,26 @@ start:
 	shr		      	; [selector]
 
 	; Jump to the coresponding function.
+	dup1			; [selector, selector]
+	push4 selector("transferFrom(address,address,uint256)") ; [candidate, selector, selector]
+	eq			; [success, selector]
+	push4 transfer_from	; [transfer_from, success, selector]
+	jumpi			; [selector]
+
+	dup1			; [selector, selector]
+	push4 selector("approve(address,uint256)") ; [candidate, selector, selector]
+	eq			; [success, selector]
+	push4 approve		; [allowance, success, selector]
+	jumpi			; [selector]
+
+	dup1			; [selector, selector]
+	push4 selector("transfer(address,uint256)") ; [candidate, selector, selector]
+	eq			; [selector, success]
+	push4 transfer		; [transfer, success, selector]
+	jumpi			; [selector]
+
+
+	; Check the view functions last to not waste gas on-chain.
 	dup1			; [selector, selector]
 	push4 selector("decimals()") ; [candidate, selector, selector]
 	eq			; [success, selector]
@@ -31,16 +62,11 @@ start:
 	jumpi			; [selector]
 
 	dup1			; [selector, selector]
-	push4 selector("transfer(address,uint256)") ; [candidate, selector, selector]
-	eq			; [selector, success]
-	push4 transfer		; [transfer, success, selector]
+	push4 selector("allowance(address,address)") ; [candidate, selector, selector]
+	eq			; [success, selector]
+	push4 allowance		; [allowance, success, selector]
 	jumpi			; [selector]
 
-	dup1			; [selector, selector]
-	push4 selector("transferFrom(address,address,uint256)") ; [candidate, selector, selector]
-	eq			; [success, selector]
-	push4 transfer_from	; [transfer_from, success, selector]
-	jumpi			; [selector]
 
 ; Catchall for reverts.
 failure:
@@ -119,6 +145,68 @@ valid_transfer:
 	add			; [amt + to_balance, to]
 	swap1			; [to, amt + to_balance]
 	sstore			; []
+
+	stop
+
+; approve
+;
+; calldata structure
+; +--------------------+------------------+--------------------+-------------------+
+; | selector (4 bytes) | zeros (12 bytes) | spender (20 bytes) | amount (32 bytes) |
+; +--------------------+------------------+--------------------+-------------------+
+approve:
+	jumpdest		; []
+	pop			; []
+	push1 36		; [36]
+	mload			; [amt]
+
+	; write the caller to mem[36..68]
+	caller			; [caller, amt]
+	push1 36		; [36, caller, amt]
+	mstore			; [amt]
+
+	push1 64		; [len, amt]
+	push1 4			; [offset, len, amt]
+	keccak256		; [key, amt]
+	dup1			; [key, key, amt]
+
+	sload			; [allowance, key, amt]
+	swap1			; [key, allowance, amt]
+	swap2			; [amt, allowance, key]
+	add			; [new_allowance, key]
+	swap1			; [key, new_allowance]
+	sstore			; []
+
+	stop
+
+; allowance
+;
+; calldata structure
+; +--------------------+------------------+------------------+------------------+--------------------+
+; | selector (4 bytes) | zeros (12 bytes) | owner (20 bytes) | zeros (20 bytes) | spender (20 bytes) |
+; +--------------------+------------------+------------------+------------------+--------------------+
+allowance:
+	jumpdest		; []
+	pop			; []
+
+	; current order in memory is [owner, spender], but to calculate the
+	; allowance key it needs to be [spender, owner]
+	push1 4			; [offset]
+	mload			; [owner]
+	push1 68		; [offset, owner]
+	mstore
+
+	push1 64		; [len]
+	push1 36		; [offset]
+	keccak256		; [key]
+
+	sload			; [allowance]
+	push1 0			; [offset, allowance]
+	mstore			; []
+
+	push1 32		; [32]
+	push1 0			; [0, 32]
+	return			; []
 
 decimals:
 	jumpdest

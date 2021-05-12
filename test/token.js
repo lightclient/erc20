@@ -18,5 +18,11 @@ contract("Token", accounts => {
     balance = await token.balanceOf.call(accounts[1])
     assert.strictEqual(balance.toNumber(), 10)
   });
+
+  it("approve", async () => {
+    await token.approve(accounts[1], 10, { from: accounts[0] })
+    allowance = await token.allowance.call(accounts[0], accounts[1])
+    assert.strictEqual(allowance.toNumber(), 10)
+  });
 });
 
