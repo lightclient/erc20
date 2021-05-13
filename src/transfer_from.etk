@@ -12,25 +12,25 @@ dup1			; [key, key]
 
 sload			; [available, key]
 
-push1 68		; [68, available]
-mload			; [amt, available]
+push1 68		; [68, available, key]
+mload			; [amt, available, key]
 
 ; if amt > available, revert
-dup2			; [available, amt, available]
-dup2			; [amt, available, amt, available]
-gt			; [amt > available, amt, available]
-push4 failure		; [failure, amt > available, amt, available]
+dup2			; [available, amt, available, key]
+dup2			; [amt, available, amt, available, key]
+gt			; [amt > available, amt, available, key]
+push4 failure		; [failure, amt > available, amt, available, key]
 
-jumpi			; [amt, available]
+jumpi			; [amt, available, key]
 
 check_sender:
-jumpdest		; [amt, available]
-push1 4			; [4, amt, available]
-calldataload		; [from, amt, available]
-sload			; [from_balance, amt, available]
+jumpdest		; [amt, available, key]
+push1 4			; [4, amt, available, key]
+calldataload		; [from, amt, available, key]
+sload			; [from_balance, amt, available, key]
 
-lt			; [from_balance < amt, available]
-push4 failure		; [failure, from_balance < amt, available]
+lt			; [from_balance < amt, available, key]
+push4 failure		; [failure, from_balance < amt, available, key]
 jumpi			; [available, key]
 
 ; reduce allowance by amt
@@ -68,3 +68,18 @@ swap2			; [amt, to_balance, to]
 add			; [amt + to_balance, to]
 swap1			; [to, amt + to_balance]
 sstore
+
+; output event
+push1 36		; [36]
+calldataload		; [to]
+push1 4			; [4, to]
+calldataload		; [from, to]
+push1 68		; [68, from, to]
+calldataload		; [amt, from, to]
+push1 0			; [0, amt, from, to]
+mstore			; [from, to]
+push32 selector("Transfer(address,address,uint256)") ; [topic, from, to]
+push1 32		; [32, topic, from, to]
+push1 0			; [0, 32, topic, from, to]
+
+log3
