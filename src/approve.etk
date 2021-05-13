@@ -32,3 +32,17 @@ swap2			; [amt, allowance, key]
 add			; [new_allowance, key]
 swap1			; [key, new_allowance]
 sstore			; []
+
+; output event
+push1 4			; [4]
+calldataload		; [spender]
+caller			; [owner, spender]
+push1 36		; [36, owner, spender]
+calldataload		; [amt, owner, spender]
+push1 0			; [0, value, owner, spender]
+mstore			; [owner, spender]
+push32 selector("Approval(address,address,uint256)") ; [topic, owner, spender]
+push1 32		; [32, topic, owner, spender]
+push1 0			; [0, 32, topic, ownder, spender]
+
+log3			; []

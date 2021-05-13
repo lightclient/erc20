@@ -15,7 +15,6 @@ contract("Token", accounts => {
 
   it("transfer", async () => {
     res = await token.transfer(accounts[1], 10, { from: accounts[0] })
-
     balance = await token.balanceOf.call(accounts[0])
     assert.strictEqual(balance.toNumber(), 9990)
 
@@ -34,9 +33,19 @@ contract("Token", accounts => {
   });
 
   it("approve", async () => {
-    await token.approve(accounts[1], 10, { from: accounts[0] })
+    res = await token.approve(accounts[1], 10, { from: accounts[0] })
     allowance = await token.allowance.call(accounts[0], accounts[1])
     assert.strictEqual(allowance.toNumber(), 10)
+
+    log = res.logs.find(
+      element => element.event.match('Approval') &&
+        element.address.match(token.address)
+    )
+
+    assert.strictEqual(log != null, true)
+    assert.strictEqual(log.args.owner, accounts[0])
+    assert.strictEqual(log.args.spender, accounts[1])
+    assert.strictEqual(log.args.value.toNumber(), 10)
   });
 
   it("transfer_from", async () => {

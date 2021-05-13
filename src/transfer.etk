@@ -46,4 +46,4 @@ push32 selector("Transfer(address,address,uint256)") ; [topic, from, to]
 push1 32		; [32, topic, from, to]
 push1 0			; [0, 32, topic, from, to]
 
-log3
+log3			; []
