@@ -9,7 +9,7 @@ contract("Token", accounts => {
   });
 
   it("balance_of", async () => {
-    const balance = await token.balanceOf.call(accounts[0])
+    balance = await token.balanceOf.call(accounts[0])
     assert.strictEqual(balance.toNumber(), 10000)
   });
 
@@ -22,6 +22,17 @@ contract("Token", accounts => {
   it("approve", async () => {
     await token.approve(accounts[1], 10, { from: accounts[0] })
     allowance = await token.allowance.call(accounts[0], accounts[1])
+    assert.strictEqual(allowance.toNumber(), 10)
+  });
+
+  it("transfer_from", async () => {
+    await token.approve(accounts[1], 10, { from: accounts[0] })
+    await token.transferFrom(accounts[0], accounts[1], 10, { from: accounts[1] })
+
+    allowance = await token.allowance.call(accounts[0], accounts[1])
+    assert.strictEqual(allowance.toNumber(), 10)
+
+    balance = await token.balanceOf.call(accounts[0])
     assert.strictEqual(allowance.toNumber(), 10)
   });
 });
