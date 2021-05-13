@@ -75,6 +75,7 @@ failure:
 	push1 0
 	revert
 
+
 ; balance_of
 ;
 ; calldata structure
@@ -103,12 +104,14 @@ balance_of:
 
 	return			; []
 
+
 ; transfer
 ;
 ; calldata structure
 ; +--------------------+------------------+---------------+-------------------+
 ; | selector (4 bytes) | zeros (12 bytes) | to (20 bytes) | amount (32 bytes) |
 ; +--------------------+------------------+---------------+-------------------+
+
 transfer:
 	jumpdest
 	pop
@@ -119,34 +122,31 @@ transfer:
 	mload			; [amt, from_balance]
 	dup2			; [from_balance, amt, from_balance]
 	dup2			; [amt, from_balance, amt, from_balance]
-
-	eq			; [amt == from_balance, amt, from_balance]
-	push4 valid_transfer	; [continue, amt == from_balance, amt, from_balance]
-	jumpi			; [amt, from_balance]
-
-	dup2			; [from_balance, amt, from_balance]
-	dup2			; [amt, from_balance, amt, from_balance]
+	
+	; if amt > from_balance, revert
 	gt			; [amt > from_balance, amt, from_balance]
 	push4 failure		; [failure, from_balance, amt, from_balance]
 	jumpi			; [amt, from_balance]
 
-valid_transfer:
-	dup1			; [amt, amt, from_balance]
-	swap2			; [from_balance, amt, amt]
-	sub			; [from_balance - amt, amt]
-	caller			; [from, from_balance - amt, amt]
-	sstore			; [amt]
-	push1 4			; [4, amt]
-	mload			; [to, amt]
-	dup1			; [to, to, amt]
-	sload			; [to_balance, to, amt]
-	swap1			; [to, to_balance, amt]
-	swap2			; [amt, to_balance, to]
+	; sstore(from, from_balance - amt)
+	swap1			; [from_balance, amt]
+	sub			; [from_balance - amt]
+	caller			; [from, from_balance - amt]
+	sstore			; []
+
+	; sstore(to, to_balance + amt)
+	push1 4			; [4]
+	mload			; [to]
+	dup1			; [to, to]
+	sload			; [to_balance, to]
+	push1 36		; [36, to_balance, to]
+	mload			; [amt, to_balance, to]
 	add			; [amt + to_balance, to]
 	swap1			; [to, amt + to_balance]
 	sstore			; []
 
 	stop
+
 
 ; transfer_from
 ;
@@ -154,6 +154,7 @@ valid_transfer:
 ; +--------------------+-----------------+---------------+-------------------+
 ; | selector (4 bytes) | from (32 bytes) | to (32 bytes) | amount (32 bytes) |
 ; +--------------------+-----------------+---------------+-------------------+
+
 transfer_from:
 	jumpdest
 	pop			; []
@@ -168,15 +169,7 @@ transfer_from:
 	push1 68		; [68, available]
 	mload			; [amt, available]
 
-	dup2			; [available, amt, available]
-	dup2			; [amt, available, amt, available]
-
-	; check if transfer is equal to the allowance
-	eq			; [amt == available, amt, available]
-	push4 check_sender	; [continue, amt == available, amt, available]
-	jumpi			; [amt, available]
-
-	; check if transfer is greater than allowance
+	; if amt > available, revert
 	dup2			; [available, amt, available]
 	dup2			; [amt, available, amt, available]
 	gt			; [amt > available, amt, available]
@@ -194,7 +187,7 @@ check_sender:
 	push4 failure		; [failure, from_balance < amt, available]
 	jumpi			; [available, key]
 
-; reduce allowance by amt
+	; reduce allowance by amt
 	push4 68		; [68, available, key]
 	calldataload		; [amt, available, key]
 	swap1			; [available, amt, key]
@@ -202,7 +195,7 @@ check_sender:
 	swap1			; [key, available - amt]
 	sstore			; []
 
-; reduce from balance by amt
+	; reduce from balance by amt
 	push4 4			; [4]
 	calldataload		; [from]
 	dup1			; [from, from]
@@ -218,7 +211,7 @@ check_sender:
 	swap2			; [from, from_balance - amt, amt]]
 	sstore			; [amt]
 
-; increase to balance by amt
+	; increase to balance by amt
 	push1 36		; [36, amt]
 	calldataload		; [to, amt]
 	dup1			; [to, to, amt]
@@ -232,12 +225,14 @@ check_sender:
 
 	stop
 
+
 ; approve
 ;
 ; calldata structure
 ; +--------------------+------------------+--------------------+-------------------+
 ; | selector (4 bytes) | zeros (12 bytes) | spender (20 bytes) | amount (32 bytes) |
 ; +--------------------+------------------+--------------------+-------------------+
+
 approve:
 	jumpdest		; []
 	pop			; []
