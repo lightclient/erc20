@@ -33,3 +33,17 @@ mload			; [amt, to_balance, to]
 add			; [amt + to_balance, to]
 swap1			; [to, amt + to_balance]
 sstore			; []
+
+; output event
+push1 4			; [4]
+calldataload		; [to]
+caller			; [from, to]
+push1 36		; [36, from, to]
+calldataload		; [amt, from, to]
+push1 0			; [0, amt, from, to]
+mstore			; [from, to]
+push32 selector("Transfer(address,address,uint256)") ; [topic, from, to]
+push1 32		; [32, topic, from, to]
+push1 0			; [0, 32, topic, from, to]
+
+log3

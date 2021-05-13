@@ -4,5 +4,5 @@
   "function transfer(address to, uint amount)",
   "function transferFrom(address from, address to, uint amount)",
   "function approve(address spender, uint amount)",
-  "event Transfer(address indexed from, address indexed to, uint amount)"
+  "event Transfer(address indexed from, address indexed to, uint value)"
 ]
