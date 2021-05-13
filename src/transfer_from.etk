@@ -20,7 +20,6 @@ dup2			; [available, amt, available, key]
 dup2			; [amt, available, amt, available, key]
 gt			; [amt > available, amt, available, key]
 push4 failure		; [failure, amt > available, amt, available, key]
-
 jumpi			; [amt, available, key]
 
 check_sender:
