@@ -1,0 +1,23 @@
+; balance_of
+;
+; calldata structure
+; +--------------------+------------------+--------------------+
+; | selector (4 bytes) | zeros (12 bytes) | address (20 bytes) |
+; +--------------------+------------------+--------------------+
+
+; prepare return parameters
+push1 32		; [ret_len]
+push1 0			; [ret_offset, ret_len]
+
+; skip the selector, load the address
+push1 4			; [4, ret_offset, ret_len]
+mload			; [addr, ret_offset, ret_len]
+
+; load balance
+sload			; [balance, ret_offset, ret_len]
+
+; prepare balance to return
+dup2			; [0, balance, ret_offset, ret_len]
+mstore			; [ret_offset, ret_len]
+
+return			; []

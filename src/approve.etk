@@ -1,0 +1,34 @@
+; approve
+;
+; calldata structure
+; +--------------------+------------------+--------------------+-------------------+
+; | selector (4 bytes) | zeros (12 bytes) | spender (20 bytes) | amount (32 bytes) |
+; +--------------------+------------------+--------------------+-------------------+
+
+push1 36		; [36]
+mload			; [amt]
+
+push1 4			; [4, amt]
+mload			; [sender, amt]
+
+; write the sender to mem[36..68]
+push1 36		; [36, sender, amt]
+mstore			; [amt]
+
+; write the caller to mem[4..36]
+caller			; [caller, amt]
+push1 4			; [4, caller, amt]
+mstore			; [amt]
+
+; hash mem[4..68]
+push1 64		; [len, amt]
+push1 4			; [offset, len, amt]
+keccak256		; [key, amt]
+dup1			; [key, key, amt]
+
+sload			; [allowance, key, amt]
+swap1			; [key, allowance, amt]
+swap2			; [amt, allowance, key]
+add			; [new_allowance, key]
+swap1			; [key, new_allowance]
+sstore			; []

@@ -18,4 +18,4 @@ codecopy                        ; [0, length]
 return                          ; []
 
 start:
-%include("token.etk")
+%include("jump_table.etk")

@@ -1,0 +1,70 @@
+; transfer_from
+;
+; calldata structure
+; +--------------------+-----------------+---------------+-------------------+
+; | selector (4 bytes) | from (32 bytes) | to (32 bytes) | amount (32 bytes) |
+; +--------------------+-----------------+---------------+-------------------+
+
+push1 64		; [len]
+push1 4			; [offset, len]
+keccak256		; [key]
+dup1			; [key, key]
+
+sload			; [available, key]
+
+push1 68		; [68, available]
+mload			; [amt, available]
+
+; if amt > available, revert
+dup2			; [available, amt, available]
+dup2			; [amt, available, amt, available]
+gt			; [amt > available, amt, available]
+push4 failure		; [failure, amt > available, amt, available]
+
+jumpi			; [amt, available]
+
+check_sender:
+jumpdest		; [amt, available]
+push1 4			; [4, amt, available]
+calldataload		; [from, amt, available]
+sload			; [from_balance, amt, available]
+
+lt			; [from_balance < amt, available]
+push4 failure		; [failure, from_balance < amt, available]
+jumpi			; [available, key]
+
+; reduce allowance by amt
+push4 68		; [68, available, key]
+calldataload		; [amt, available, key]
+swap1			; [available, amt, key]
+sub			; [available - amt, key]
+swap1			; [key, available - amt]
+sstore			; []
+
+; reduce from balance by amt
+push4 4			; [4]
+calldataload		; [from]
+dup1			; [from, from]
+sload			; [from_balance, from]
+
+push1 68		; [68, from_balance, from]
+calldataload		; [amt, from_balance, from]
+dup1			; [amt, amt, from_balance, from]
+
+swap2			; [from_balance, amt, amt, from]
+sub			; [from_balance - amt, amt from]
+swap1			; [amt, from_balance - amt, from]
+swap2			; [from, from_balance - amt, amt]]
+sstore			; [amt]
+
+; increase to balance by amt
+push1 36		; [36, amt]
+calldataload		; [to, amt]
+dup1			; [to, to, amt]
+sload			; [to_balance, to, amt]
+
+swap1			; [to, to_balance, amt]
+swap2			; [amt, to_balance, to]
+add			; [amt + to_balance, to]
+swap1			; [to, amt + to_balance]
+sstore
