@@ -1,73 +1,73 @@
-;
-; erc20
-;
-; Minimal ERC-20 implementation in raw assembly.
-;
-; Storage Layout
-; --
-; balance(address)	    => 0x000000000000000000000000 || address
-; allowance(owner, spender) => keccak(owner || spender)
+#
+# erc20
+#
+# Minimal ERC-20 implementation in raw assembly.
+#
+# Storage Layout
+# --
+# balance(address)	    => 0x000000000000000000000000 || address
+# allowance(owner, spender) => keccak(owner || spender)
 
 
 start:
-	; Read the calldata into memory.
-	calldatasize		; [calldatasize]
-	push1 0			; [0, calldatasize]
-	dup1			; [0, 0, calldatasize]
-	calldatacopy		; []
+	# Read the calldata into memory.
+	calldatasize		# [calldatasize]
+	push1 0			# [0, calldatasize]
+	dup1			# [0, 0, calldatasize]
+	calldatacopy		# []
 
-	; Extract only the function selector
-	push1 0			; [0]
-	mload			; [dirty_selector]
-	push1 224		; [224, dirty_selector]
-	shr		      	; [selector]
+	# Extract only the function selector
+	push1 0			# [0]
+	mload			# [dirty_selector]
+	push1 224		# [224, dirty_selector]
+	shr		      	# [selector]
 
-	; Jump to the coresponding function.
-	dup1			; [selector, selector]
-	push4 selector("transferFrom(address,address,uint256)") ; [candidate, selector, selector]
-	eq			; [success, selector]
-	push4 transfer_from	; [transfer_from, success, selector]
-	jumpi			; [selector]
+	# Jump to the coresponding function.
+	dup1			# [selector, selector]
+	push4 selector("transferFrom(address,address,uint256)") # [candidate, selector, selector]
+	eq			# [success, selector]
+	push4 transfer_from	# [transfer_from, success, selector]
+	jumpi			# [selector]
 
-	dup1			; [selector, selector]
-	push4 selector("approve(address,uint256)") ; [candidate, selector, selector]
-	eq			; [success, selector]
-	push4 approve		; [allowance, success, selector]
-	jumpi			; [selector]
+	dup1			# [selector, selector]
+	push4 selector("approve(address,uint256)") # [candidate, selector, selector]
+	eq			# [success, selector]
+	push4 approve		# [allowance, success, selector]
+	jumpi			# [selector]
 
-	dup1			; [selector, selector]
-	push4 selector("transfer(address,uint256)") ; [candidate, selector, selector]
-	eq			; [selector, success]
-	push4 transfer		; [transfer, success, selector]
-	jumpi			; [selector]
+	dup1			# [selector, selector]
+	push4 selector("transfer(address,uint256)") # [candidate, selector, selector]
+	eq			# [selector, success]
+	push4 transfer		# [transfer, success, selector]
+	jumpi			# [selector]
 
 
-	; Check the view functions last to not waste gas on-chain.
-	dup1			; [selector, selector]
-	push4 selector("decimals()") ; [candidate, selector, selector]
-	eq			; [success, selector]
-	push4 decimals		; [decimals, success, selector]
-	jumpi			; [selector]
+	# Check the view functions last to not waste gas on-chain.
+	dup1			# [selector, selector]
+	push4 selector("decimals()") # [candidate, selector, selector]
+	eq			# [success, selector]
+	push4 decimals		# [decimals, success, selector]
+	jumpi			# [selector]
 
-	dup1			; [selector, selector]
-	push4 selector("totalSupply()")	; [candidate, selector, selector]
-	eq			; [success, selector]
-	push4 total_supply	; [total_supply, success, selector]
-	jumpi			; [selector]
+	dup1			# [selector, selector]
+	push4 selector("totalSupply()")	# [candidate, selector, selector]
+	eq			# [success, selector]
+	push4 total_supply	# [total_supply, success, selector]
+	jumpi			# [selector]
 
-	dup1			; [selector, selector]
-	push4 selector("balanceOf(address)") ; [candidate, selector, selector]
-	eq			; [success, selector]
-	push4 balance_of	; [balance_of, success, selector]
-	jumpi			; [selector]
+	dup1			# [selector, selector]
+	push4 selector("balanceOf(address)") # [candidate, selector, selector]
+	eq			# [success, selector]
+	push4 balance_of	# [balance_of, success, selector]
+	jumpi			# [selector]
 
-	dup1			; [selector, selector]
-	push4 selector("allowance(address,address)") ; [candidate, selector, selector]
-	eq			; [success, selector]
-	push4 allowance		; [allowance, success, selector]
-	jumpi			; [selector]
+	dup1			# [selector, selector]
+	push4 selector("allowance(address,address)") # candidate, selector, selector]
+	eq			# [success, selector]
+	push4 allowance		# [allowance, success, selector]
+	jumpi			# [selector]
 
-; Catchall for reverts.
+# Catchall for reverts.
 failure:
 	jumpdest
 	push1 0

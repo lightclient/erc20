@@ -1,84 +1,84 @@
-; transfer_from
-;
-; calldata structure
-; +--------------------+-----------------+---------------+-------------------+
-; | selector (4 bytes) | from (32 bytes) | to (32 bytes) | amount (32 bytes) |
-; +--------------------+-----------------+---------------+-------------------+
+# transfer_from
+#
+# calldata structure
+# +--------------------+-----------------+---------------+-------------------+
+# | selector (4 bytes) | from (32 bytes) | to (32 bytes) | amount (32 bytes) |
+# +--------------------+-----------------+---------------+-------------------+
 
-push1 64		; [len]
-push1 4			; [offset, len]
-keccak256		; [key]
-dup1			; [key, key]
+push1 64		# [len]
+push1 4			# [offset, len]
+keccak256		# [key]
+dup1			# [key, key]
 
-sload			; [available, key]
+sload			# [available, key]
 
-push1 68		; [68, available, key]
-mload			; [amt, available, key]
+push1 68		# [68, available, key]
+mload			# [amt, available, key]
 
-; if amt > available, revert
-dup2			; [available, amt, available, key]
-dup2			; [amt, available, amt, available, key]
-gt			; [amt > available, amt, available, key]
-push4 failure		; [failure, amt > available, amt, available, key]
-jumpi			; [amt, available, key]
+# if amt > available, revert
+dup2			# [available, amt, available, key]
+dup2			# [amt, available, amt, available, key]
+gt			# [amt > available, amt, available, key]
+push4 failure		# [failure, amt > available, amt, available, key]
+jumpi			# [amt, available, key]
 
 check_sender:
-jumpdest		; [amt, available, key]
-push1 4			; [4, amt, available, key]
-calldataload		; [from, amt, available, key]
-sload			; [from_balance, amt, available, key]
+jumpdest		# [amt, available, key]
+push1 4			# [4, amt, available, key]
+calldataload		# [from, amt, available, key]
+sload			# [from_balance, amt, available, key]
 
-lt			; [from_balance < amt, available, key]
-push4 failure		; [failure, from_balance < amt, available, key]
-jumpi			; [available, key]
+lt			# [from_balance < amt, available, key]
+push4 failure		# [failure, from_balance < amt, available, key]
+jumpi			# [available, key]
 
-; reduce allowance by amt
-push4 68		; [68, available, key]
-calldataload		; [amt, available, key]
-swap1			; [available, amt, key]
-sub			; [available - amt, key]
-swap1			; [key, available - amt]
-sstore			; []
+# reduce allowance by amt
+push4 68		# [68, available, key]
+calldataload		# [amt, available, key]
+swap1			# [available, amt, key]
+sub			# [available - amt, key]
+swap1			# [key, available - amt]
+sstore			# []
 
-; reduce from balance by amt
-push4 4			; [4]
-calldataload		; [from]
-dup1			; [from, from]
-sload			; [from_balance, from]
+# reduce from balance by amt
+push4 4			# [4]
+calldataload		# [from]
+dup1			# [from, from]
+sload			# [from_balance, from]
 
-push1 68		; [68, from_balance, from]
-calldataload		; [amt, from_balance, from]
-dup1			; [amt, amt, from_balance, from]
+push1 68		# [68, from_balance, from]
+calldataload		# [amt, from_balance, from]
+dup1			# [amt, amt, from_balance, from]
 
-swap2			; [from_balance, amt, amt, from]
-sub			; [from_balance - amt, amt from]
-swap1			; [amt, from_balance - amt, from]
-swap2			; [from, from_balance - amt, amt]]
-sstore			; [amt]
+swap2			# [from_balance, amt, amt, from]
+sub			# [from_balance - amt, amt from]
+swap1			# [amt, from_balance - amt, from]
+swap2			# [from, from_balance - amt, amt]]
+sstore			# [amt]
 
-; increase to balance by amt
-push1 36		; [36, amt]
-calldataload		; [to, amt]
-dup1			; [to, to, amt]
-sload			; [to_balance, to, amt]
+# increase to balance by amt
+push1 36		# [36, amt]
+calldataload		# [to, amt]
+dup1			# [to, to, amt]
+sload			# [to_balance, to, amt]
 
-swap1			; [to, to_balance, amt]
-swap2			; [amt, to_balance, to]
-add			; [amt + to_balance, to]
-swap1			; [to, amt + to_balance]
+swap1			# [to, to_balance, amt]
+swap2			# [amt, to_balance, to]
+add			# [amt + to_balance, to]
+swap1			# [to, amt + to_balance]
 sstore
 
-; output event
-push1 36		; [36]
-calldataload		; [to]
-push1 4			; [4, to]
-calldataload		; [from, to]
-push1 68		; [68, from, to]
-calldataload		; [amt, from, to]
-push1 0			; [0, amt, from, to]
-mstore			; [from, to]
-push32 selector("Transfer(address,address,uint256)") ; [topic, from, to]
-push1 32		; [32, topic, from, to]
-push1 0			; [0, 32, topic, from, to]
+# output event
+push1 36		# [36]
+calldataload		# [to]
+push1 4			# [4, to]
+calldataload		# [from, to]
+push1 68		# [68, from, to]
+calldataload		# [amt, from, to]
+push1 0			# [0, amt, from, to]
+mstore			# [from, to]
+push32 topic("Transfer(address,address,uint256)") # [topic, from, to]
+push1 32		# [32, topic, from, to]
+push1 0			# [0, 32, topic, from, to]
 
-log3			; []
+log3			# []
